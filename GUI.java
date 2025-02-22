@@ -7,30 +7,35 @@ public class GUI {
     private JLabel[][] letterBoxes = new JLabel[5][5];
     private StringBuilder currentInput = new StringBuilder();
     private int currentRow = 0;
+    private PlayGame game;
+    private String targetWord;
 
     public GUI() {
-        JFrame frame = new JFrame("Wordle Input");
+       
+        game = new PlayGame(); 
+        // get random word from playgame
+        targetWord = game.getRandomWord(); 
+
+        JFrame frame = new JFrame("Wordle Game");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
         frame.setSize(400, 500);
 
-        // create 5x5 box
-        JPanel inputPanel = new JPanel();
-        inputPanel.setLayout(new GridLayout(5, 5, 5, 5));
+        // Create 5x5 grid
+        JPanel inputPanel = new JPanel(new GridLayout(5, 5, 5, 5));
         for (int i = 0; i < 5; i++) {
             for (int j = 0; j < 5; j++) {
                 letterBoxes[i][j] = new JLabel("_", SwingConstants.CENTER);
                 letterBoxes[i][j].setBorder(BorderFactory.createLineBorder(Color.BLACK));
                 letterBoxes[i][j].setFont(new Font("SansSerif", Font.BOLD, 24));
-                letterBoxes[i][j].setPreferredSize(new Dimension(50, 50));
+                letterBoxes[i][j].setOpaque(true);
+                letterBoxes[i][j].setBackground(Color.WHITE);
                 inputPanel.add(letterBoxes[i][j]);
             }
         }
 
-        // visualize keyboard
-        JPanel keyboardPanel = new JPanel();
-        keyboardPanel.setLayout(new GridLayout(3, 1, 0, 0));
-
+        // Keyboard visualization
+        JPanel keyboardPanel = new JPanel(new GridLayout(3, 1, 0, 0));
         String[] keyboardRows = {"QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"};
         for (String row : keyboardRows) {
             JPanel rowPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 2, 2));
@@ -46,74 +51,98 @@ public class GUI {
             keyboardPanel.add(rowPanel);
         }
 
-        // dropdown menu
-        JComboBox<String> dropdown = new JComboBox<>(new String[]{"Placeholder Message"});
+        // message display
+        JComboBox<String> dropdown = new JComboBox<>(new String[]{"Game Over! Try again?"});
         dropdown.setVisible(false);
 
-        // add panels to frame
         frame.add(inputPanel, BorderLayout.NORTH);
         frame.add(keyboardPanel, BorderLayout.CENTER);
         frame.add(dropdown, BorderLayout.SOUTH);
 
-        // get keyboard input
-        JPanel inputCapturePanel = new JPanel();
-        inputCapturePanel.setFocusable(true);
-        inputCapturePanel.requestFocusInWindow();
-
-        // key listen event
-        inputCapturePanel.addKeyListener(new KeyAdapter() {
+        // key listener for user input
+        frame.addKeyListener(new KeyAdapter() {
             @Override
-            public void keyTyped(KeyEvent e) {
+            public void keyPressed(KeyEvent e) {
                 char c = Character.toUpperCase(e.getKeyChar());
 
                 if (Character.isLetter(c) && currentInput.length() < 5) {
                     currentInput.append(c);
-                } else if (c == '\b' && currentInput.length() > 0) { // backspace event
+                } else if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE && currentInput.length() > 0) {
                     currentInput.deleteCharAt(currentInput.length() - 1);
-                } else if (c == '\n' && currentInput.length() == 5) { // drop rows
-                    if (currentRow < 4) {
-                        currentInput.setLength(0);
-                        currentRow++;
-                    } else {
-                        dropdown.setVisible(true);
-                        currentInput.setLength(0);
-                        currentRow = 0;
-                        clearBoard();
-                    }
+                } else if (e.getKeyCode() == KeyEvent.VK_ENTER && currentInput.length() == 5) {
+                    processWord();
                 }
 
                 updateBoxes();
             }
         });
 
-        frame.add(inputCapturePanel, BorderLayout.EAST);
+        frame.setFocusable(true);
         frame.setVisible(true);
-        inputCapturePanel.requestFocusInWindow(); // Make sure you are tabbed in when typing.
+        frame.requestFocus();
     }
 
     private void updateBoxes() {
-        for (int i = 0; i < 5; i++) {
-            for (int j = 0; j < 5; j++) {
-                if (i == currentRow && j < currentInput.length()) {
-                    letterBoxes[i][j].setText(String.valueOf(currentInput.charAt(j)));
-                } else if (letterBoxes[i][j].getText().equals("_")) {
-                    letterBoxes[i][j].setText("_"); // Show underscore when empty
-                }
+        for (int j = 0; j < 5; j++) {
+            if (j < currentInput.length()) {
+                letterBoxes[currentRow][j].setText(String.valueOf(currentInput.charAt(j)));
+            } else {
+                letterBoxes[currentRow][j].setText("_");
             }
         }
     }
 
-    private void clearBoard() {
+    private void processWord() {
+        String guessedWord = currentInput.toString();
+
+        if (!game.validateGuess(guessedWord)) {
+            JOptionPane.showMessageDialog(null, "Invalid word! Try again.");
+            return;
+        }
+
+        colorChange();
+
+        if (guessedWord.equals(targetWord)) {
+            JOptionPane.showMessageDialog(null, "Congratulations! You guessed the word.");
+            resetGame();
+        } else if (currentRow < 4) {
+            currentInput.setLength(0);
+            currentRow++;
+        } else {
+            JOptionPane.showMessageDialog(null, "Game Over! The word was: " + targetWord);
+            resetGame();
+        }
+    }
+
+    private void colorChange() {
+        for (int j = 0; j < 5; j++) {
+            char inputChar = currentInput.charAt(j);
+            char targetChar = targetWord.charAt(j);
+
+            if (inputChar == targetChar) {
+                letterBoxes[currentRow][j].setBackground(Color.GREEN);
+            } else if (targetWord.contains(String.valueOf(inputChar))) {
+                letterBoxes[currentRow][j].setBackground(Color.YELLOW);
+            } else {
+                letterBoxes[currentRow][j].setBackground(Color.GRAY);
+            }
+        }
+    }
+
+    private void resetGame() {
+        currentRow = 0;
+        currentInput.setLength(0);
+        targetWord = game.getRandomWord();
+        
         for (int i = 0; i < 5; i++) {
             for (int j = 0; j < 5; j++) {
                 letterBoxes[i][j].setText("_");
+                letterBoxes[i][j].setBackground(Color.WHITE);
             }
         }
     }
 
-    // Main method that will be used to run the GUI from WordleUnlimited
     public static void main(String[] args) {
-
         new GUI();
     }
 }
