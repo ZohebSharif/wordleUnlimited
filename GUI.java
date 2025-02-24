@@ -21,7 +21,7 @@ public class GUI {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
         frame.setSize(400, 500);
-
+        frame.setResizable(false);
         JPanel inputPanel = new JPanel(new GridLayout(5, 5, 5, 5));
         for (int i = 0; i < 5; i++) {
             for (int j = 0; j < 5; j++) {   
