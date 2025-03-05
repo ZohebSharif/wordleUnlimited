@@ -54,6 +54,8 @@ public class GUI {
         frame.add(inputPanel, BorderLayout.NORTH);
         frame.add(keyboardPanel, BorderLayout.CENTER);
         
+        // difficulty selection buttons
+        //JPaneul mixed = new JPanel
         // listen for user input
         frame.addKeyListener(new KeyAdapter() {
             @Override
